@@ -1,0 +1,96 @@
+name: macOS Remote Debug (tmate)
+
+on:
+  workflow_dispatch:
+    inputs:
+      keep_alive_minutes:
+        description: "How long to keep the runner alive for manual debugging (minutes)"
+        required: false
+        default: "180"
+      ref:
+        description: "Git ref to checkout (branch, tag, or SHA)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-tmate-debug
+  cancel-in-progress: false
+
+jobs:
+  debug:
+    name: Start macOS runner with tmate
+    runs-on: macos-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout target ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref != '' && inputs.ref || github.ref }}
+
+      - name: Show runner info
+        run: |
+          set -euo pipefail
+          sw_vers
+          uname -a
+          echo "GitHub actor: $GITHUB_ACTOR"
+          echo "Repository: $GITHUB_REPOSITORY"
+
+      - name: Install tmate
+        run: |
+          set -euo pipefail
+          if ! command -v tmate >/dev/null 2>&1; then
+            brew install tmate
+          fi
+          tmate -V
+
+      - name: Start tmate session
+        run: |
+          set -euo pipefail
+          TMATE_SOCK="/tmp/tmate.sock"
+          tmux kill-session -t initos-debug 2>/dev/null || true
+          rm -f "${TMATE_SOCK}"
+          tmate -S "${TMATE_SOCK}" new-session -d -s initos-debug
+          tmate -S "${TMATE_SOCK}" wait tmate-ready
+
+          SSH_CMD="$(tmate -S "${TMATE_SOCK}" display -p '#{tmate_ssh}')"
+          WEB_CMD="$(tmate -S "${TMATE_SOCK}" display -p '#{tmate_web}')"
+
+          echo "::notice title=tmate SSH::${SSH_CMD}"
+          echo "::notice title=tmate Web::${WEB_CMD}"
+
+          {
+            echo "## macOS tmate debug session"
+            echo
+            echo "- SSH: \`${SSH_CMD}\`"
+            echo "- Web: ${WEB_CMD}"
+            echo
+            echo "Use this shell to run the Bubble Tea app and validate TUI/color rendering."
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Keep runner alive for debugging
+        env:
+          KEEP_ALIVE_MINUTES: ${{ inputs.keep_alive_minutes }}
+        run: |
+          set -euo pipefail
+          if ! [[ "${KEEP_ALIVE_MINUTES}" =~ ^[0-9]+$ ]]; then
+            echo "keep_alive_minutes must be a positive integer, got: ${KEEP_ALIVE_MINUTES}"
+            exit 1
+          fi
+          if [ "${KEEP_ALIVE_MINUTES}" -le 0 ]; then
+            echo "keep_alive_minutes must be > 0"
+            exit 1
+          fi
+
+          echo "Keeping runner alive for ${KEEP_ALIVE_MINUTES} minutes."
+          echo "Cancel the workflow run when finished debugging."
+
+          for ((i = 1; i <= KEEP_ALIVE_MINUTES; i++)); do
+            sleep 60
+            if (( i % 10 == 0 )); then
+              echo "Alive for ${i}/${KEEP_ALIVE_MINUTES} minutes..."
+            fi
+          done
