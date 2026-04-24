@@ -1,0 +1,161 @@
+default_locale: "en"
+locales:
+  - id: "en"
+    label: "English"
+  - id: "zh"
+    label: "中文"
+
+tools:
+  - id: "git"
+    name:
+      en: "Git"
+      zh: "Git"
+    desc:
+      en: "Distributed version control"
+      zh: "分布式版本控制"
+    check: "git --version"
+    install:
+      windows: "winget install --id Git.Git --exact --accept-package-agreements --accept-source-agreements"
+      darwin: "brew install git"
+      debian: "sudo apt install -y git"
+
+  - id: "nvim"
+    name:
+      en: "Neovim"
+      zh: "Neovim"
+    desc:
+      en: "Vim-based text editor"
+      zh: "基于 Vim 的文本编辑器"
+    check: "nvim --version"
+    install:
+      windows: "winget install --id Neovim.Neovim --exact --accept-package-agreements --accept-source-agreements"
+      darwin: "brew install neovim"
+      debian: "sudo apt install -y neovim"
+
+  - id: "fzf"
+    name:
+      en: "fzf"
+      zh: "fzf"
+    desc:
+      en: "Command-line fuzzy finder"
+      zh: "命令行模糊搜索工具"
+    check: "fzf --version"
+    install:
+      windows: "winget install --id junegunn.fzf --exact --accept-package-agreements --accept-source-agreements"
+      darwin: "brew install fzf"
+      debian: "sudo apt install -y fzf"
+
+  - id: "ripgrep"
+    name:
+      en: "ripgrep"
+      zh: "ripgrep"
+    desc:
+      en: "Fast recursive search tool"
+      zh: "极速递归搜索工具"
+    check: "rg --version"
+    install:
+      windows: "winget install --id BurntSushi.ripgrep.MSVC --exact --accept-package-agreements --accept-source-agreements"
+      darwin: "brew install ripgrep"
+      debian: "sudo apt install -y ripgrep"
+
+  - id: "linux-swap"
+    name:
+      en: "4G Swap"
+      zh: "4G 交换分区"
+    desc:
+      en: "Create /swapfile (4G) and set swappiness=10"
+      zh: "创建 /swapfile（4G）并将 swappiness 设为 10"
+    check: "awk '$1==\"/swapfile\"{e=1}END{exit !e}' /proc/swaps"
+    install:
+      windows: ""
+      darwin: ""
+      debian: |
+        sudo sh -c '
+        set -e
+        echo "创建 4G Swap 并优化 swappiness..."
+        SWAP_PATH="/swapfile"
+        SWAP_SIZE="4G"
+        swapoff $SWAP_PATH 2>/dev/null || true
+        rm -f $SWAP_PATH
+        fallocate -l $SWAP_SIZE $SWAP_PATH || dd if=/dev/zero of=$SWAP_PATH bs=1M count=4096
+        chmod 600 $SWAP_PATH
+        mkswap $SWAP_PATH
+        swapon $SWAP_PATH
+        sed -i "\#$SWAP_PATH#d" /etc/fstab
+        echo "$SWAP_PATH none swap sw 0 0" >> /etc/fstab
+        sysctl vm.swappiness=10
+        if ! grep -q "vm.swappiness" /etc/sysctl.conf; then
+          echo "vm.swappiness=10" >> /etc/sysctl.conf
+        else
+          sed -i "s/vm.swappiness=.*/vm.swappiness=10/" /etc/sysctl.conf
+        fi
+        echo "Swap 与 swappiness 已配置完成。"
+        '
+
+  - id: "docker"
+    name:
+      en: "Docker"
+      zh: "Docker"
+    desc:
+      en: "Container runtime (macOS Docker Desktop / Linux Docker Engine + tuning)"
+      zh: "容器运行时（macOS Docker Desktop / Linux Docker Engine + 优化）"
+    check: "docker --version"
+    install:
+      windows: ""
+      darwin: "brew install --cask docker"
+      debian: |
+        sudo sh -c '
+        set -e
+
+        echo "[1/2] 安装 Docker..."
+        curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun
+
+        echo "[2/2] 优化 Docker 配置..."
+        mkdir -p /etc/docker
+        cat >/etc/docker/daemon.json <<EOF
+        {
+          "registry-mirrors": [
+            "https://docker.xuanyuan.me",
+            "https://docker.1ms.run",
+            "https://docker.m.daocloud.io",
+            "https://registry-1.docker.io"
+          ],
+          "log-driver": "json-file",
+          "log-opts": {
+            "max-size": "10m",
+            "max-file": "3"
+          },
+          "storage-driver": "overlay2"
+        }
+        EOF
+        systemctl daemon-reload
+        systemctl restart docker
+
+        echo "Docker 安装与配置已完成。"
+        '
+
+  - id: "pearcleaner"
+    name:
+      en: "Pearcleaner"
+      zh: "Pearcleaner"
+    desc:
+      en: "Uninstall macOS apps and clean leftover files"
+      zh: "卸载 macOS 应用并清理残留文件"
+    check: "[ -d /Applications/Pearcleaner.app ] || brew list --cask pearcleaner >/dev/null 2>&1"
+    install:
+      windows: ""
+      darwin: "brew install --cask pearcleaner"
+      debian: ""
+
+  - id: "orbstack"
+    name:
+      en: "OrbStack"
+      zh: "OrbStack"
+    desc:
+      en: "Fast container/VM runtime for macOS"
+      zh: "macOS 上的高性能容器/虚拟机运行时"
+    check: "[ -d /Applications/OrbStack.app ] || brew list --cask orbstack >/dev/null 2>&1"
+    install:
+      windows: ""
+      darwin: "brew install --cask orbstack"
+      debian: ""
