@@ -1,0 +1,53 @@
+# build outputs
+/dist/
+
+# Go build / test artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+__debug_bin
+__debug_bin*
+
+# go mod vendor (opt-in: remove this line if you commit vendor/)
+/vendor/
+
+# coverage & profiling
+coverage.out
+coverage.html
+*.coverprofile
+cpu.prof
+mem.prof
+
+# local env (keep examples)
+.env
+.env.*
+!.env.example
+
+# logs & temp
+*.log
+*.tmp
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor / IDE (若团队要共享某目录里的配置，可删除对应行或用 ! 反选)
+.vscode/
+.idea/
+.cursor/
+.fleet/
+.vs/
+.project
+.classpath
+.settings/
+nbproject/
+*.sublime-workspace
+# Sublime 若需共享 *.sublime-project 可只保留上面一行 workspace
+# JetBrains: 位于仓库根目录的模块文件（.idea/ 下 *.iml 见上）
+/*.iml
